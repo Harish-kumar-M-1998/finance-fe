@@ -1,0 +1,133 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  password            String
+  name                String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  
+  balanceTransactions BalanceTransaction[]
+  expenses            Expense[]
+  categories          Category[]
+  plans               Plan[]
+  recurringExpenses   RecurringExpense[]
+  settings            UserSettings?
+}
+
+model BalanceTransaction {
+  id          String          @id @default(uuid())
+  type        TransactionType
+  amount      Decimal         @db.Decimal(10, 2)
+  description String?
+  createdAt   DateTime        @default(now())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String
+  color    String
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([userId, name])
+}
+
+model Expense {
+  id         String   @id @default(uuid())
+  title      String
+  amount     Decimal  @db.Decimal(10, 2)
+  date       DateTime
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  planExpenses PlanExpense[]
+
+  @@index([userId, date])
+  @@index([categoryId])
+}
+
+model Plan {
+  id           String        @id @default(uuid())
+  name         String
+  budgetAmount Decimal       @db.Decimal(10, 2)
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  planExpenses PlanExpense[]
+
+  @@index([userId])
+}
+
+model PlanExpense {
+  id        String   @id @default(uuid())
+  planId    String
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  expenseId String
+  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, expenseId])
+}
+
+model RecurringExpense {
+  id        String              @id @default(uuid())
+  title     String
+  amount    Decimal             @db.Decimal(10, 2)
+  frequency RecurringFrequency
+  nextRun   DateTime
+  createdAt DateTime            @default(now())
+  
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, nextRun])
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model UserSettings {
+  id           String  @id @default(uuid())
+  currency     String  @default("USD")
+  dailyLimit   Decimal? @db.Decimal(10, 2)
+  monthlyLimit Decimal? @db.Decimal(10, 2)
+  
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
