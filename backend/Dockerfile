@@ -7,18 +7,15 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --only=production
 
-# Copy application files
-COPY . .
-
-# Generate Prisma Client
+# Generate Prisma Client for the correct platform
 RUN npx prisma generate
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Copy source code
+COPY src ./src
 
 EXPOSE 5000
 
-# Development command
-CMD ["npm", "run", "dev"]
+# Run migrations and start
+CMD npx prisma migrate deploy && node src/server.js
