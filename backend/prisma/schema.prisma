@@ -1,7 +1,9 @@
 // backend/prisma/schema.prisma
+// Enhanced Expense Tracker with Budget Planning
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -23,6 +25,8 @@ model User {
   plans               Plan[]
   recurringExpenses   RecurringExpense[]
   settings            UserSettings?
+
+  @@map("users")
 }
 
 model BalanceTransaction {
@@ -35,6 +39,7 @@ model BalanceTransaction {
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@map("balance_transactions")
 }
 
 enum TransactionType {
@@ -49,8 +54,12 @@ model Category {
   userId   String
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expenses Expense[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@unique([userId, name])
+  @@index([userId])
+  @@map("categories")
 }
 
 model Expense {
@@ -72,6 +81,7 @@ model Expense {
 
   @@index([userId, date])
   @@index([categoryId])
+  @@map("expenses")
 }
 
 model Plan {
@@ -89,6 +99,7 @@ model Plan {
   planExpenses PlanExpense[]
 
   @@index([userId])
+  @@map("plans")
 }
 
 model PlanExpense {
@@ -99,6 +110,7 @@ model PlanExpense {
   expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   @@unique([planId, expenseId])
+  @@map("plan_expenses")
 }
 
 model RecurringExpense {
@@ -113,6 +125,7 @@ model RecurringExpense {
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, nextRun])
+  @@map("recurring_expenses")
 }
 
 enum RecurringFrequency {
@@ -130,4 +143,6 @@ model UserSettings {
   
   userId       String  @unique
   user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_settings")
 }
